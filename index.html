@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>EAN Skener</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -25,7 +25,15 @@
             height: 100vh;
         }
         
-        #video {
+        #interactive {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #interactive video {
             position: absolute;
             top: 0;
             left: 0;
@@ -34,8 +42,12 @@
             object-fit: cover;
         }
         
-        #canvas {
-            display: none;
+        #interactive canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
         
         #result {
@@ -188,12 +200,15 @@
             background: #6b7280;
             color: white;
         }
+
+        .drawingBuffer {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div id="container">
-        <video id="video" autoplay playsinline></video>
-        <canvas id="canvas"></canvas>
+        <div id="interactive" class="viewport"></div>
         <div id="result"></div>
         <div id="info">Namiřte kameru na EAN kód</div>
         <div id="eanCode"></div>
@@ -219,9 +234,6 @@
             '7333269685378'
         ]);
 
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
         const result = document.getElementById('result');
         const info = document.getElementById('info');
         const eanCode = document.getElementById('eanCode');
@@ -262,63 +274,65 @@
 
         function startScanner() {
             info.textContent = 'Spouštím kameru...';
+            startBtn.style.display = 'none';
             
-            navigator.mediaDevices.getUserMedia({
-                video: { 
-                    facingMode: 'environment',
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#interactive'),
+                    constraints: {
+                        facingMode: "environment",
+                        width: { min: 640, ideal: 1920 },
+                        height: { min: 480, ideal: 1080 }
+                    }
+                },
+                decoder: {
+                    readers: [
+                        "ean_reader",
+                        "ean_8_reader"
+                    ],
+                    multiple: false
+                },
+                locate: true,
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true
+                },
+                numOfWorkers: 0,
+                frequency: 10
+            }, function(err) {
+                if (err) {
+                    console.error('Quagga init error:', err);
+                    if (err.name === 'NotAllowedError') {
+                        info.textContent = 'Prosím povolte přístup ke kameře v Nastavení > Safari > Kamera';
+                        info.style.background = 'rgba(239, 68, 68, 0.9)';
+                    } else {
+                        info.textContent = 'Chyba kamery: ' + err.message;
+                        info.style.background = 'rgba(239, 68, 68, 0.9)';
+                    }
+                    startBtn.style.display = 'block';
+                    return;
                 }
-            })
-            .then(function(stream) {
-                video.srcObject = stream;
-                startBtn.style.display = 'none';
+                
                 info.textContent = 'Namiřte kameru na EAN kód';
                 scanning = true;
-                requestAnimationFrame(scan);
-            })
-            .catch(function(err) {
-                console.error('Camera error:', err);
-                if (err.name === 'NotAllowedError') {
-                    info.textContent = 'Prosím povolte přístup ke kameře v Nastavení > Safari > Kamera';
-                    info.style.background = 'rgba(239, 68, 68, 0.9)';
-                } else if (err.name === 'NotFoundError') {
-                    info.textContent = 'Kamera nebyla nalezena';
-                    info.style.background = 'rgba(239, 68, 68, 0.9)';
-                } else {
-                    info.textContent = 'Chyba kamery: ' + err.message;
-                    info.style.background = 'rgba(239, 68, 68, 0.9)';
-                }
-                startBtn.style.display = 'block';
+                Quagga.start();
             });
-        }
 
-        function scan() {
-            if (!scanning) return;
-
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            Quagga.onDetected(function(data) {
+                if (!scanning) return;
                 
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-
-                if (code) {
-                    const currentTime = Date.now();
-                    
-                    // Prevence duplicitního skenování (cooldown 1.5s)
-                    if (code.data !== lastScannedCode || currentTime - lastScanTime > 1500) {
-                        lastScannedCode = code.data;
-                        lastScanTime = currentTime;
-                        handleScan(code.data);
-                    }
+                const code = data.codeResult.code;
+                const currentTime = Date.now();
+                
+                // Prevence duplicitního skenování (cooldown 1.5s)
+                if (code !== lastScannedCode || currentTime - lastScanTime > 1500) {
+                    lastScannedCode = code;
+                    lastScanTime = currentTime;
+                    handleScan(code);
                 }
-            }
-
-            requestAnimationFrame(scan);
+            });
         }
 
         function handleScan(code) {
@@ -348,12 +362,6 @@
                 info.textContent = 'Namiřte kameru na EAN kód';
                 info.style.background = 'rgba(0,0,0,0.7)';
             }, 1500);
-        }
-
-        // Auto-start na mobilech
-        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-            // Na iOS Safari musí uživatel kliknout kvůli auto-play policy
-            info.textContent = 'Klikněte pro spuštění';
         }
     </script>
 </body>
