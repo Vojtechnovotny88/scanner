@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EAN Skener</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        #canvas {
+            display: none;
+        }
+        
+        #result {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 100px;
+            z-index: 10;
+            animation: pulse 0.3s ease-out;
+        }
+        
+        #result.success {
+            background: #10b981;
+            display: flex;
+        }
+        
+        #result.error {
+            background: #ef4444;
+            display: flex;
+        }
+        
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 14px;
+            text-align: center;
+            z-index: 5;
+            max-width: 90%;
+        }
+        
+        #eanCode {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 5;
+            display: none;
+        }
+        
+        #startBtn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        #editBtn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 5;
+        }
+        
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            overflow-y: auto;
+        }
+        
+        #modalContent {
+            background: white;
+            margin: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        
+        #modalContent h2 {
+            margin-bottom: 15px;
+        }
+        
+        #modalContent textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .modal-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .btn-save {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-cancel {
+            background: #6b7280;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas"></canvas>
+        <div id="result"></div>
+        <div id="info">Namiřte kameru na EAN kód</div>
+        <div id="eanCode"></div>
+        <button id="startBtn">Spustit skener</button>
+        <button id="editBtn">Upravit EAN databázi</button>
+    </div>
+
+    <div id="modal">
+        <div id="modalContent">
+            <h2>EAN databáze</h2>
+            <p style="margin-bottom: 10px; color: #666;">Zadejte EAN kódy, každý na nový řádek:</p>
+            <textarea id="eanInput"></textarea>
+            <div class="modal-buttons">
+                <button class="btn-save" id="saveBtn">Uložit</button>
+                <button class="btn-cancel" id="cancelBtn">Zrušit</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Databáze EAN kódů
+        let eanDatabase = new Set([
+            '7333269685378'
+        ]);
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const result = document.getElementById('result');
+        const info = document.getElementById('info');
+        const eanCode = document.getElementById('eanCode');
+        const startBtn = document.getElementById('startBtn');
+        const editBtn = document.getElementById('editBtn');
+        const modal = document.getElementById('modal');
+        const eanInput = document.getElementById('eanInput');
+        
+        let scanning = false;
+        let lastScannedCode = '';
+        let lastScanTime = 0;
+
+        startBtn.addEventListener('click', startScanner);
+        editBtn.addEventListener('click', openModal);
+        document.getElementById('saveBtn').addEventListener('click', saveEanDatabase);
+        document.getElementById('cancelBtn').addEventListener('click', closeModal);
+
+        function openModal() {
+            eanInput.value = Array.from(eanDatabase).join('\n');
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        function saveEanDatabase() {
+            const eans = eanInput.value.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+            eanDatabase = new Set(eans);
+            closeModal();
+            info.textContent = `Databáze aktualizována: ${eanDatabase.size} EAN kódů`;
+            setTimeout(() => {
+                info.textContent = 'Namiřte kameru na EAN kód';
+            }, 2000);
+        }
+
+        function startScanner() {
+            info.textContent = 'Spouštím kameru...';
+            
+            navigator.mediaDevices.getUserMedia({
+                video: { 
+                    facingMode: 'environment',
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
+            })
+            .then(function(stream) {
+                video.srcObject = stream;
+                startBtn.style.display = 'none';
+                info.textContent = 'Namiřte kameru na EAN kód';
+                scanning = true;
+                requestAnimationFrame(scan);
+            })
+            .catch(function(err) {
+                console.error('Camera error:', err);
+                if (err.name === 'NotAllowedError') {
+                    info.textContent = 'Prosím povolte přístup ke kameře v Nastavení > Safari > Kamera';
+                    info.style.background = 'rgba(239, 68, 68, 0.9)';
+                } else if (err.name === 'NotFoundError') {
+                    info.textContent = 'Kamera nebyla nalezena';
+                    info.style.background = 'rgba(239, 68, 68, 0.9)';
+                } else {
+                    info.textContent = 'Chyba kamery: ' + err.message;
+                    info.style.background = 'rgba(239, 68, 68, 0.9)';
+                }
+                startBtn.style.display = 'block';
+            });
+        }
+
+        function scan() {
+            if (!scanning) return;
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code) {
+                    const currentTime = Date.now();
+                    
+                    // Prevence duplicitního skenování (cooldown 1.5s)
+                    if (code.data !== lastScannedCode || currentTime - lastScanTime > 1500) {
+                        lastScannedCode = code.data;
+                        lastScanTime = currentTime;
+                        handleScan(code.data);
+                    }
+                }
+            }
+
+            requestAnimationFrame(scan);
+        }
+
+        function handleScan(code) {
+            const isValid = eanDatabase.has(code);
+            
+            // Zobrazit výsledek
+            result.className = isValid ? 'success' : 'error';
+            result.textContent = isValid ? '✓' : '✗';
+            
+            // Zobrazit EAN kód
+            eanCode.textContent = code;
+            eanCode.style.display = 'block';
+            
+            // Aktualizovat info text
+            info.textContent = isValid ? 'EAN v databázi ✓' : 'EAN není v databázi ✗';
+            info.style.background = isValid ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)';
+            
+            // Vibrovat na mobilu
+            if (navigator.vibrate) {
+                navigator.vibrate(isValid ? 100 : [100, 50, 100]);
+            }
+            
+            // Skrýt po 1.5s
+            setTimeout(() => {
+                result.style.display = 'none';
+                eanCode.style.display = 'none';
+                info.textContent = 'Namiřte kameru na EAN kód';
+                info.style.background = 'rgba(0,0,0,0.7)';
+            }, 1500);
+        }
+
+        // Auto-start na mobilech
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            // Na iOS Safari musí uživatel kliknout kvůli auto-play policy
+            info.textContent = 'Klikněte pro spuštění';
+        }
+    </script>
+</body>
+</html>
