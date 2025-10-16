@@ -211,7 +211,7 @@
 
         <div class="box box-gray">
             <label>Marže (bez DPH)</label>
-            <input type="number" id="marze" class="input-marze" value="0" step="100" placeholder="0" oninput="prepocitat()" onchange="prepocitat()" onkeyup="prepocitat()">
+            <input type="number" id="marze" class="input-marze" value="0" step="100" placeholder="0" oninput="prepocitat()">
         </div>
 
         <div class="box box-blue">
@@ -263,6 +263,14 @@
                 <span class="label-bold" style="font-size: 20px;">Zisk:</span>
                 <span class="value value-xlarge" id="zisk">0,00 Kč</span>
             </div>
+            <div class="row">
+                <span class="label-text">Dotace:</span>
+                <span class="value green">90 000,00 Kč</span>
+            </div>
+            <div class="row row-total">
+                <span class="label-bold">Zákazník doplácí:</span>
+                <span class="value" id="doplatek">0,00 Kč</span>
+            </div>
         </div>
 
         <div class="info">
@@ -272,11 +280,11 @@
     </div>
 
     <script>
-        var NAKLADY_KUS = 10000;
-        var FEE = 8000;
-        var DPH = 0.12;
-        var PROVIZE_OZ_PROCENT = 0.10;
-        var MIN_CENA_S_DPH = 90000;
+        const NAKLADY_KUS = 10000; // technologie + práce
+        const FEE = 8000;
+        const DPH = 0.12;
+        const PROVIZE_OZ_PROCENT = 0.10;
+        const MIN_CENA_S_DPH = 90000;
 
         function formatCena(cislo) {
             return cislo.toLocaleString('cs-CZ', {
@@ -286,51 +294,59 @@
         }
 
         function zmenaKusu(zmena) {
-            var input = document.getElementById('pocetKusu');
-            var nova = Math.max(1, parseInt(input.value) + zmena);
+            const input = document.getElementById('pocetKusu');
+            const nova = Math.max(1, parseInt(input.value) + zmena);
             input.value = nova;
             prepocitat();
         }
 
         function prepocitat() {
-            var pocetKusu = parseInt(document.getElementById('pocetKusu').value) || 1;
-            var marze = parseFloat(document.getElementById('marze').value) || 0;
+            const pocetKusu = parseInt(document.getElementById('pocetKusu').value) || 1;
+            const marze = parseFloat(document.getElementById('marze').value) || 0;
 
-            var nakladyCelkem = pocetKusu * NAKLADY_KUS + FEE;
-            var zaklad = nakladyCelkem + marze;
-            
-            var cenaBezDPH = zaklad / (1 - PROVIZE_OZ_PROCENT);
-            var cenaSDPH = cenaBezDPH * (1 + DPH);
-            var skutecnaMarze = marze;
-            var jeMin = false;
+            const nakladyCelkem = (pocetKusu * NAKLADY_KUS) + FEE;
 
+            // základní cena bez DPH (náklady + marže)
+            let cenaBezDPH = nakladyCelkem + marze;
+
+            // přidání provize OZ (10%)
+            let cenaProZakaznikaBezDPH = cenaBezDPH * (1 + PROVIZE_OZ_PROCENT);
+            let cenaSDPH = cenaProZakaznikaBezDPH * (1 + DPH);
+
+            let provizeOZ = cenaProZakaznikaBezDPH * PROVIZE_OZ_PROCENT;
+            let skutecnaMarze = marze;
+            let jeMin = false;
+
+            // pokud je výsledná cena nižší než minimální (dotace)
             if (cenaSDPH < MIN_CENA_S_DPH) {
                 cenaSDPH = MIN_CENA_S_DPH;
-                cenaBezDPH = cenaSDPH / (1 + DPH);
-                zaklad = cenaBezDPH * (1 - PROVIZE_OZ_PROCENT);
-                skutecnaMarze = zaklad - nakladyCelkem;
+                const novaCenaBezDPH = cenaSDPH / (1 + DPH);
+                provizeOZ = novaCenaBezDPH * PROVIZE_OZ_PROCENT;
+                skutecnaMarze = novaCenaBezDPH - nakladyCelkem - provizeOZ;
+                cenaProZakaznikaBezDPH = novaCenaBezDPH;
                 jeMin = true;
             }
 
-            var provizeOZ = cenaBezDPH * PROVIZE_OZ_PROCENT;
-            var dphCastka = cenaSDPH - cenaBezDPH;
-            var zisk = cenaBezDPH - nakladyCelkem - provizeOZ;
+            const dphCastka = cenaProZakaznikaBezDPH * DPH;
+            const zisk = (cenaProZakaznikaBezDPH - nakladyCelkem - provizeOZ);
+            const doplatek = Math.max(0, cenaSDPH - 90000);
 
             document.getElementById('nakladyKusu').textContent = formatCena(pocetKusu * NAKLADY_KUS);
             document.getElementById('nakladyCelkem').textContent = formatCena(nakladyCelkem);
-            document.getElementById('cenaBezDPH').textContent = formatCena(cenaBezDPH);
+            document.getElementById('cenaBezDPH').textContent = formatCena(cenaProZakaznikaBezDPH);
             document.getElementById('provizeOZ').textContent = formatCena(provizeOZ);
             document.getElementById('dph').textContent = formatCena(dphCastka);
             document.getElementById('cenaSDPH').textContent = formatCena(cenaSDPH);
-            
-            var ziskEl = document.getElementById('zisk');
+            document.getElementById('doplatek').textContent = formatCena(doplatek);
+
+            const ziskEl = document.getElementById('zisk');
             ziskEl.textContent = formatCena(zisk);
             ziskEl.className = 'value value-xlarge ' + (zisk >= 0 ? 'green' : 'red');
 
             document.getElementById('warningMin').style.display = jeMin ? 'block' : 'none';
 
-            var marzeRow = document.getElementById('skutecnaMarzeRow');
-            if (Math.abs(skutecnaMarze - marze) > 0.01) {
+            const marzeRow = document.getElementById('skutecnaMarzeRow');
+            if (jeMin) {
                 marzeRow.style.display = 'flex';
                 document.getElementById('skutecnaMarze').textContent = formatCena(skutecnaMarze);
             } else {
