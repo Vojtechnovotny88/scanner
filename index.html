@@ -5,200 +5,191 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalkulátor ceny rekuperace</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #e0f2fe 0%, #c7d2fe 100%);
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom right, #e0f2fe, #c7d2fe);
             min-height: 100vh;
-            padding: 24px;
+            margin: 0;
+            padding: 20px;
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 900px;
             margin: 0 auto;
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
         }
 
         h1 {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #1f2937;
-            margin-bottom: 32px;
             text-align: center;
+            color: #1f2937;
+            margin-bottom: 30px;
         }
 
-        .section {
-            margin-bottom: 32px;
-            padding: 24px;
-            border-radius: 12px;
+        .box {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 8px;
         }
 
-        .section-gray {
+        .box-gray {
             background: #f9fafb;
         }
 
-        .section-blue {
+        .box-blue {
             background: #eff6ff;
             border: 2px solid #bfdbfe;
         }
 
-        .section-green {
+        .box-green {
             background: #f0fdf4;
             border: 2px solid #bbf7d0;
         }
 
-        .section-purple {
+        .box-purple {
             background: #faf5ff;
             border: 2px solid #e9d5ff;
         }
 
-        .section-title {
-            font-size: 1.25rem;
+        .box-title {
+            font-size: 20px;
             font-weight: bold;
             color: #1f2937;
-            margin-bottom: 16px;
+            margin-bottom: 15px;
         }
 
         label {
             display: block;
-            font-size: 1.125rem;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: bold;
             color: #374151;
-            margin-bottom: 16px;
+            margin-bottom: 15px;
         }
 
-        .counter-controls {
+        .counter {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 15px;
         }
 
-        .counter-button {
-            padding: 12px;
+        .btn {
+            padding: 10px 15px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background-color 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
         }
 
-        .counter-button.minus {
+        .btn-minus {
             background: #ef4444;
             color: white;
         }
 
-        .counter-button.minus:hover {
+        .btn-minus:hover {
             background: #dc2626;
         }
 
-        .counter-button.plus {
+        .btn-plus {
             background: #22c55e;
             color: white;
         }
 
-        .counter-button.plus:hover {
+        .btn-plus:hover {
             background: #16a34a;
         }
 
-        .counter-display {
+        .counter-middle {
             flex: 1;
             text-align: center;
         }
 
-        .counter-input {
-            width: 128px;
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: bold;
+        input[type="number"] {
             border: 2px solid #d1d5db;
-            border-radius: 8px;
+            border-radius: 6px;
             padding: 8px;
+            font-size: 16px;
         }
 
-        .input-full {
+        .input-kusy {
+            width: 100px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .input-marze {
             width: 100%;
-            font-size: 1.25rem;
-            border: 2px solid #d1d5db;
-            border-radius: 8px;
-            padding: 12px;
+            font-size: 18px;
+            padding: 10px;
         }
 
-        .result-row {
+        .row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 8px;
         }
 
-        .result-row.total {
-            border-top: 2px solid currentColor;
+        .row-total {
+            border-top: 2px solid #d1d5db;
             padding-top: 8px;
             margin-top: 8px;
         }
 
-        .result-label {
+        .label-text {
             color: #6b7280;
         }
 
-        .result-label.bold {
+        .label-bold {
             color: #1f2937;
             font-weight: bold;
         }
 
-        .result-value {
-            font-weight: 600;
-        }
-
-        .result-value.large {
-            font-size: 1.5rem;
+        .value {
             font-weight: bold;
         }
 
-        .result-value.xlarge {
-            font-size: 1.875rem;
-            font-weight: bold;
+        .value-large {
+            font-size: 24px;
         }
 
-        .text-green {
+        .value-xlarge {
+            font-size: 28px;
+        }
+
+        .green {
             color: #15803d;
         }
 
-        .text-red {
+        .red {
             color: #dc2626;
         }
 
-        .text-orange {
+        .orange {
             color: #ea580c;
         }
 
         .warning {
-            margin-top: 8px;
-            font-size: 0.875rem;
+            margin-top: 10px;
+            font-size: 14px;
             color: #ea580c;
-            font-weight: 500;
+            font-weight: bold;
         }
 
-        .info-box {
-            margin-top: 24px;
-            padding: 16px;
+        .info {
+            margin-top: 20px;
+            padding: 15px;
             background: #f3f4f6;
-            border-radius: 8px;
-            font-size: 0.875rem;
+            border-radius: 6px;
+            font-size: 14px;
             color: #6b7280;
         }
 
-        .info-box p:first-child {
-            font-weight: 600;
-            margin-bottom: 4px;
+        .info p:first-child {
+            font-weight: bold;
+            margin-bottom: 5px;
         }
     </style>
 </head>
@@ -206,84 +197,75 @@
     <div class="container">
         <h1>Kalkulátor ceny rekuperace</h1>
 
-        <div class="section section-gray">
+        <div class="box box-gray">
             <label>Počet kusů rekuperací</label>
-            <div class="counter-controls">
-                <button class="counter-button minus" onclick="zmenaKusu(-1)">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </button>
-                <div class="counter-display">
-                    <input type="number" id="pocetKusu" class="counter-input" value="1" min="1" oninput="prepocitat()">
+            <div class="counter">
+                <button class="btn btn-minus" onclick="zmenaKusu(-1)">−</button>
+                <div class="counter-middle">
+                    <input type="number" id="pocetKusu" class="input-kusy" value="1" min="1" oninput="prepocitat()">
                     <span> ks</span>
                 </div>
-                <button class="counter-button plus" onclick="zmenaKusu(1)">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </button>
+                <button class="btn btn-plus" onclick="zmenaKusu(1)">+</button>
             </div>
         </div>
 
-        <div class="section section-gray">
+        <div class="box box-gray">
             <label>Marže (bez DPH)</label>
-            <input type="number" id="marze" class="input-full" value="0" step="100" placeholder="0" oninput="prepocitat()">
+            <input type="number" id="marze" class="input-marze" value="0" step="100" placeholder="0" oninput="prepocitat()" onchange="prepocitat()" onkeyup="prepocitat()">
         </div>
 
-        <div class="section section-blue">
-            <h2 class="section-title">Náklady</h2>
-            <div class="result-row">
-                <span class="result-label">Kusů × 10 000 Kč:</span>
-                <span class="result-value" id="nakladyKusu">0,00 Kč</span>
+        <div class="box box-blue">
+            <div class="box-title">Náklady</div>
+            <div class="row">
+                <span class="label-text">Kusů × 10 000 Kč:</span>
+                <span class="value" id="nakladyKusu">0,00 Kč</span>
             </div>
-            <div class="result-row">
-                <span class="result-label">FEE (doprava + test):</span>
-                <span class="result-value">8 000,00 Kč</span>
+            <div class="row">
+                <span class="label-text">FEE (doprava + test):</span>
+                <span class="value">8 000,00 Kč</span>
             </div>
-            <div class="result-row total" style="border-color: #93c5fd;">
-                <span class="result-label bold">Náklady celkem:</span>
-                <span class="result-value large" id="nakladyCelkem">0,00 Kč</span>
+            <div class="row row-total">
+                <span class="label-bold">Náklady celkem:</span>
+                <span class="value value-large" id="nakladyCelkem">0,00 Kč</span>
             </div>
         </div>
 
-        <div class="section section-green">
-            <h2 class="section-title">Prodejní cena</h2>
-            <div class="result-row">
-                <span class="result-label">Cena bez DPH:</span>
-                <span class="result-value" id="cenaBezDPH">0,00 Kč</span>
+        <div class="box box-green">
+            <div class="box-title">Prodejní cena</div>
+            <div class="row">
+                <span class="label-text">Cena bez DPH:</span>
+                <span class="value" id="cenaBezDPH">0,00 Kč</span>
             </div>
-            <div class="result-row">
-                <span class="result-label">Provize OZ (10%):</span>
-                <span class="result-value text-orange" id="provizeOZ">0,00 Kč</span>
+            <div class="row">
+                <span class="label-text">Provize OZ (10%):</span>
+                <span class="value orange" id="provizeOZ">0,00 Kč</span>
             </div>
-            <div class="result-row">
-                <span class="result-label">DPH (12%):</span>
-                <span class="result-value" id="dph">0,00 Kč</span>
+            <div class="row">
+                <span class="label-text">DPH (12%):</span>
+                <span class="value" id="dph">0,00 Kč</span>
             </div>
-            <div class="result-row total" style="border-color: #86efac;">
-                <span class="result-label bold">Cena s DPH:</span>
-                <span class="result-value xlarge text-green" id="cenaSDPH">0,00 Kč</span>
+            <div class="row row-total">
+                <span class="label-bold">Cena s DPH:</span>
+                <span class="value value-xlarge green" id="cenaSDPH">0,00 Kč</span>
             </div>
             <div id="warningMin" class="warning" style="display: none;">
                 ⚠ Minimální cena 90 000 Kč s DPH
             </div>
         </div>
 
-        <div class="section section-purple">
-            <h2 class="section-title">Výsledek</h2>
-            <div id="skutecnaMarzeRow" class="result-row" style="display: none;">
-                <span class="result-label">Skutečná marže (kvůli minimu):</span>
-                <span class="result-value text-orange" id="skutecnaMarze">0,00 Kč</span>
+        <div class="box box-purple">
+            <div class="box-title">Výsledek</div>
+            <div id="skutecnaMarzeRow" class="row" style="display: none;">
+                <span class="label-text">Skutečná marže (kvůli minimu):</span>
+                <span class="value orange" id="skutecnaMarze">0,00 Kč</span>
             </div>
-            <div class="result-row">
-                <span class="result-label bold" style="font-size: 1.125rem;">Zisk:</span>
-                <span class="result-value xlarge" id="zisk">0,00 Kč</span>
+            <div class="row">
+                <span class="label-bold" style="font-size: 20px;">Zisk:</span>
+                <span class="value value-xlarge" id="zisk">0,00 Kč</span>
             </div>
         </div>
 
-        <div class="info-box">
+        <div class="info">
             <p>Poznámka:</p>
             <p>Zisk = Cena bez DPH - Náklady celkem - Provize OZ</p>
         </div>
@@ -297,16 +279,16 @@
         var MIN_CENA_S_DPH = 90000;
 
         function formatCena(cislo) {
-            return new Intl.NumberFormat('cs-CZ', {
+            return cislo.toLocaleString('cs-CZ', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
-            }).format(cislo) + ' Kč';
+            }) + ' Kč';
         }
 
         function zmenaKusu(zmena) {
             var input = document.getElementById('pocetKusu');
-            var novaPocet = Math.max(1, parseInt(input.value) + zmena);
-            input.value = novaPocet;
+            var nova = Math.max(1, parseInt(input.value) + zmena);
+            input.value = nova;
             prepocitat();
         }
 
@@ -315,19 +297,19 @@
             var marze = parseFloat(document.getElementById('marze').value) || 0;
 
             var nakladyCelkem = pocetKusu * NAKLADY_KUS + FEE;
-            var zakladProVypocet = nakladyCelkem + marze;
+            var zaklad = nakladyCelkem + marze;
             
-            var cenaBezDPH = zakladProVypocet / (1 - PROVIZE_OZ_PROCENT);
+            var cenaBezDPH = zaklad / (1 - PROVIZE_OZ_PROCENT);
             var cenaSDPH = cenaBezDPH * (1 + DPH);
             var skutecnaMarze = marze;
-            var jeMinimum = false;
+            var jeMin = false;
 
             if (cenaSDPH < MIN_CENA_S_DPH) {
                 cenaSDPH = MIN_CENA_S_DPH;
                 cenaBezDPH = cenaSDPH / (1 + DPH);
-                var zakladZCeny = cenaBezDPH * (1 - PROVIZE_OZ_PROCENT);
-                skutecnaMarze = zakladZCeny - nakladyCelkem;
-                jeMinimum = true;
+                zaklad = cenaBezDPH * (1 - PROVIZE_OZ_PROCENT);
+                skutecnaMarze = zaklad - nakladyCelkem;
+                jeMin = true;
             }
 
             var provizeOZ = cenaBezDPH * PROVIZE_OZ_PROCENT;
@@ -341,22 +323,18 @@
             document.getElementById('dph').textContent = formatCena(dphCastka);
             document.getElementById('cenaSDPH').textContent = formatCena(cenaSDPH);
             
-            var ziskElement = document.getElementById('zisk');
-            ziskElement.textContent = formatCena(zisk);
-            if (zisk >= 0) {
-                ziskElement.className = 'result-value xlarge text-green';
-            } else {
-                ziskElement.className = 'result-value xlarge text-red';
-            }
+            var ziskEl = document.getElementById('zisk');
+            ziskEl.textContent = formatCena(zisk);
+            ziskEl.className = 'value value-xlarge ' + (zisk >= 0 ? 'green' : 'red');
 
-            document.getElementById('warningMin').style.display = jeMinimum ? 'block' : 'none';
+            document.getElementById('warningMin').style.display = jeMin ? 'block' : 'none';
 
-            var skutecnaMarzeRow = document.getElementById('skutecnaMarzeRow');
-            if (skutecnaMarze !== marze) {
-                skutecnaMarzeRow.style.display = 'flex';
+            var marzeRow = document.getElementById('skutecnaMarzeRow');
+            if (Math.abs(skutecnaMarze - marze) > 0.01) {
+                marzeRow.style.display = 'flex';
                 document.getElementById('skutecnaMarze').textContent = formatCena(skutecnaMarze);
             } else {
-                skutecnaMarzeRow.style.display = 'none';
+                marzeRow.style.display = 'none';
             }
         }
 
