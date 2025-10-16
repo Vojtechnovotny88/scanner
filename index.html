@@ -306,30 +306,30 @@
 
             const nakladyCelkem = (pocetKusu * NAKLADY_KUS) + FEE;
 
-            // základní cena bez DPH (náklady + marže)
-            let cenaBezDPH = nakladyCelkem + marze;
-
-            // přidání provize OZ (10%)
-            let cenaProZakaznikaBezDPH = cenaBezDPH * (1 + PROVIZE_OZ_PROCENT);
+            // náklady + marže tvoří 90% ceny bez DPH
+            const nakladyAMarze = nakladyCelkem + marze;
+            
+            // celková cena bez DPH (náklady+marže jsou 90%, provize OZ 10%)
+            let cenaProZakaznikaBezDPH = nakladyAMarze / (1 - PROVIZE_OZ_PROCENT);
+            let provizeOZ = cenaProZakaznikaBezDPH * PROVIZE_OZ_PROCENT;
             let cenaSDPH = cenaProZakaznikaBezDPH * (1 + DPH);
 
-            let provizeOZ = cenaProZakaznikaBezDPH * PROVIZE_OZ_PROCENT;
             let skutecnaMarze = marze;
             let jeMin = false;
 
             // pokud je výsledná cena nižší než minimální (dotace)
             if (cenaSDPH < MIN_CENA_S_DPH) {
                 cenaSDPH = MIN_CENA_S_DPH;
-                const novaCenaBezDPH = cenaSDPH / (1 + DPH);
-                provizeOZ = novaCenaBezDPH * PROVIZE_OZ_PROCENT;
-                skutecnaMarze = novaCenaBezDPH - nakladyCelkem - provizeOZ;
-                cenaProZakaznikaBezDPH = novaCenaBezDPH;
+                cenaProZakaznikaBezDPH = cenaSDPH / (1 + DPH);
+                provizeOZ = cenaProZakaznikaBezDPH * PROVIZE_OZ_PROCENT;
+                const nakladyAMarzeNove = cenaProZakaznikaBezDPH * (1 - PROVIZE_OZ_PROCENT);
+                skutecnaMarze = nakladyAMarzeNove - nakladyCelkem;
                 jeMin = true;
             }
 
             const dphCastka = cenaProZakaznikaBezDPH * DPH;
-            const zisk = (cenaProZakaznikaBezDPH - nakladyCelkem - provizeOZ);
-            const doplatek = Math.max(0, cenaSDPH - 90000);
+            const zisk = (cenaProZakaznikaBezDPH * (1 - PROVIZE_OZ_PROCENT)) - nakladyCelkem;
+            const doplatek = cenaSDPH - 90000;
 
             document.getElementById('nakladyKusu').textContent = formatCena(pocetKusu * NAKLADY_KUS);
             document.getElementById('nakladyCelkem').textContent = formatCena(nakladyCelkem);
