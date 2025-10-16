@@ -228,6 +228,14 @@
                 <span class="label-bold">Náklady celkem:</span>
                 <span class="value value-large" id="nakladyCelkem">0,00 Kč</span>
             </div>
+            <div class="row">
+                <span class="label-text">Požadovaná marže:</span>
+                <span class="value green" id="pozadovanaMarze">0,00 Kč</span>
+            </div>
+            <div class="row">
+                <span class="label-bold">Náklady + marže (90%):</span>
+                <span class="value" id="nakladyMarze">0,00 Kč</span>
+            </div>
         </div>
 
         <div class="box box-green">
@@ -306,33 +314,43 @@
 
             const nakladyCelkem = (pocetKusu * NAKLADY_KUS) + FEE;
 
-            // náklady + marže tvoří 90% ceny bez DPH
-            const nakladyAMarze = nakladyCelkem + marze;
+            // ZÁKLADNÍ CENA (bez marže)
+            const nakladyBezMarze = nakladyCelkem;
+            let cenaZakladBezDPH = nakladyBezMarze / (1 - PROVIZE_OZ_PROCENT);
+            let cenaZakladSDPH = cenaZakladBezDPH * (1 + DPH);
             
-            // celková cena bez DPH (náklady+marže jsou 90%, provize OZ 10%)
-            let cenaProZakaznikaBezDPH = nakladyAMarze / (1 - PROVIZE_OZ_PROCENT);
-            let provizeOZ = cenaProZakaznikaBezDPH * PROVIZE_OZ_PROCENT;
-            let cenaSDPH = cenaProZakaznikaBezDPH * (1 + DPH);
-
-            let skutecnaMarze = marze;
-            let jeMin = false;
-
-            // pokud je výsledná cena nižší než minimální (dotace)
-            if (cenaSDPH < MIN_CENA_S_DPH) {
-                cenaSDPH = MIN_CENA_S_DPH;
-                cenaProZakaznikaBezDPH = cenaSDPH / (1 + DPH);
-                provizeOZ = cenaProZakaznikaBezDPH * PROVIZE_OZ_PROCENT;
-                const nakladyAMarzeNove = cenaProZakaznikaBezDPH * (1 - PROVIZE_OZ_PROCENT);
-                skutecnaMarze = nakladyAMarzeNove - nakladyCelkem;
-                jeMin = true;
+            // Pokud je základní cena nižší než minimum, použij minimum
+            if (cenaZakladSDPH < MIN_CENA_S_DPH) {
+                cenaZakladSDPH = MIN_CENA_S_DPH;
+                cenaZakladBezDPH = cenaZakladSDPH / (1 + DPH);
             }
 
+            // MARŽE (přičítá se navíc)
+            let marzeSDPHaProvizi = 0;
+            let marzeBezDPH = 0;
+            if (marze > 0) {
+                // marže tvoří 90% nějaké částky
+                marzeBezDPH = marze / (1 - PROVIZE_OZ_PROCENT);
+                marzeSDPHaProvizi = marzeBezDPH * (1 + DPH);
+            }
+
+            // CELKOVÁ CENA (základ + marže)
+            const cenaProZakaznikaBezDPH = cenaZakladBezDPH + marzeBezDPH;
+            const cenaSDPH = cenaZakladSDPH + marzeSDPHaProvizi;
+            
+            const nakladyAMarze = nakladyCelkem + marze;
+            const provizeOZ = cenaProZakaznikaBezDPH * PROVIZE_OZ_PROCENT;
             const dphCastka = cenaProZakaznikaBezDPH * DPH;
             const zisk = (cenaProZakaznikaBezDPH * (1 - PROVIZE_OZ_PROCENT)) - nakladyCelkem;
             const doplatek = cenaSDPH - 90000;
 
+            const jeMin = (cenaZakladSDPH >= MIN_CENA_S_DPH) ? false : true;
+            const skutecnaMarze = marze;
+
             document.getElementById('nakladyKusu').textContent = formatCena(pocetKusu * NAKLADY_KUS);
             document.getElementById('nakladyCelkem').textContent = formatCena(nakladyCelkem);
+            document.getElementById('pozadovanaMarze').textContent = formatCena(marze);
+            document.getElementById('nakladyMarze').textContent = formatCena(nakladyAMarze);
             document.getElementById('cenaBezDPH').textContent = formatCena(cenaProZakaznikaBezDPH);
             document.getElementById('provizeOZ').textContent = formatCena(provizeOZ);
             document.getElementById('dph').textContent = formatCena(dphCastka);
