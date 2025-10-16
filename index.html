@@ -1,171 +1,372 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Minus } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulátor ceny rekuperace</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-export default function RekuperaceCalculator() {
-  const [pocetKusu, setPocetKusu] = useState(1);
-  const [marze, setMarze] = useState(0);
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #c7d2fe 100%);
+            min-height: 100vh;
+            padding: 24px;
+        }
 
-  const NAKLADY_KUS = 10000; // 8000 technologie + 2000 práce
-  const FEE = 8000;
-  const DPH = 0.12;
-  const PROVIZE_OZ_PROCENT = 0.10;
-  const MIN_CENA_S_DPH = 90000;
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 32px;
+        }
 
-  // Výpočty
-  const nakladyCelkem = pocetKusu * NAKLADY_KUS + FEE;
-  const zakladProVypocet = nakladyCelkem + marze;
-  
-  // Cena bez DPH musí zahrnovat provizi OZ (která je 10% z celkové ceny bez DPH)
-  // Tedy: cenaBezDPH = zakladProVypocet / 0.9
-  let cenaBezDPH = zakladProVypocet / (1 - PROVIZE_OZ_PROCENT);
-  let cenaSDPH = cenaBezDPH * (1 + DPH);
-  let skutecnaMarze = marze;
+        h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 32px;
+            text-align: center;
+        }
 
-  // Pokud je cena s DPH menší než minimum, přepočítáme
-  if (cenaSDPH < MIN_CENA_S_DPH) {
-    cenaSDPH = MIN_CENA_S_DPH;
-    cenaBezDPH = cenaSDPH / (1 + DPH);
-    const zakladZCeny = cenaBezDPH * (1 - PROVIZE_OZ_PROCENT);
-    skutecnaMarze = zakladZCeny - nakladyCelkem;
-  }
+        .section {
+            margin-bottom: 32px;
+            padding: 24px;
+            border-radius: 12px;
+        }
 
-  const provizeOZ = cenaBezDPH * PROVIZE_OZ_PROCENT;
-  const zisk = cenaBezDPH - nakladyCelkem - provizeOZ;
+        .section-gray {
+            background: #f9fafb;
+        }
 
-  const formatCena = (cislo) => {
-    return new Intl.NumberFormat('cs-CZ', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(cislo) + ' Kč';
-  };
+        .section-blue {
+            background: #eff6ff;
+            border: 2px solid #bfdbfe;
+        }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
-            Kalkulátor ceny rekuperace
-          </h1>
+        .section-green {
+            background: #f0fdf4;
+            border: 2px solid #bbf7d0;
+        }
 
-          {/* Počet kusů */}
-          <div className="mb-8 p-6 bg-gray-50 rounded-xl">
-            <label className="block text-lg font-semibold text-gray-700 mb-4">
-              Počet kusů rekuperací
-            </label>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setPocetKusu(Math.max(1, pocetKusu - 1))}
-                className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-lg transition-colors"
-              >
-                <Minus size={20} />
-              </button>
-              <div className="flex-1 text-center">
-                <input
-                  type="number"
-                  value={pocetKusu}
-                  onChange={(e) => setPocetKusu(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-32 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg p-2"
-                  min="1"
-                />
-                <span className="text-gray-600 ml-2">ks</span>
-              </div>
-              <button
-                onClick={() => setPocetKusu(pocetKusu + 1)}
-                className="bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg transition-colors"
-              >
-                <Plus size={20} />
-              </button>
-            </div>
-          </div>
+        .section-purple {
+            background: #faf5ff;
+            border: 2px solid #e9d5ff;
+        }
 
-          {/* Marže */}
-          <div className="mb-8 p-6 bg-gray-50 rounded-xl">
-            <label className="block text-lg font-semibold text-gray-700 mb-4">
-              Marže (bez DPH)
-            </label>
-            <input
-              type="number"
-              value={marze}
-              onChange={(e) => setMarze(parseFloat(e.target.value) || 0)}
-              className="w-full text-xl border-2 border-gray-300 rounded-lg p-3"
-              placeholder="0"
-              step="100"
-            />
-          </div>
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
 
-          {/* Náklady */}
-          <div className="mb-8 p-6 bg-blue-50 rounded-xl border-2 border-blue-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Náklady</h2>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Kusů × 10 000 Kč:</span>
-                <span className="font-semibold">{formatCena(pocetKusu * NAKLADY_KUS)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">FEE (doprava + test):</span>
-                <span className="font-semibold">{formatCena(FEE)}</span>
-              </div>
-              <div className="border-t-2 border-blue-300 pt-2 flex justify-between">
-                <span className="text-gray-800 font-bold">Náklady celkem:</span>
-                <span className="font-bold text-lg">{formatCena(nakladyCelkem)}</span>
-              </div>
-            </div>
-          </div>
+        label {
+            display: block;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 16px;
+        }
 
-          {/* Ceny */}
-          <div className="mb-8 p-6 bg-green-50 rounded-xl border-2 border-green-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Prodejní cena</h2>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Cena bez DPH:</span>
-                <span className="font-semibold">{formatCena(cenaBezDPH)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Provize OZ (10%):</span>
-                <span className="font-semibold text-orange-600">{formatCena(provizeOZ)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">DPH (12%):</span>
-                <span className="font-semibold">{formatCena(cenaSDPH - cenaBezDPH)}</span>
-              </div>
-              <div className="border-t-2 border-green-300 pt-2 flex justify-between">
-                <span className="text-gray-800 font-bold">Cena s DPH:</span>
-                <span className="font-bold text-2xl text-green-700">{formatCena(cenaSDPH)}</span>
-              </div>
-              {cenaSDPH === MIN_CENA_S_DPH && (
-                <div className="mt-2 text-sm text-orange-600 font-medium">
-                  ⚠ Minimální cena 90 000 Kč s DPH
+        .counter-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .counter-button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .counter-button.minus {
+            background: #ef4444;
+            color: white;
+        }
+
+        .counter-button.minus:hover {
+            background: #dc2626;
+        }
+
+        .counter-button.plus {
+            background: #22c55e;
+            color: white;
+        }
+
+        .counter-button.plus:hover {
+            background: #16a34a;
+        }
+
+        .counter-display {
+            flex: 1;
+            text-align: center;
+        }
+
+        .counter-input {
+            width: 128px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .input-full {
+            width: 100%;
+            font-size: 1.25rem;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .result-row.total {
+            border-top: 2px solid currentColor;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+
+        .result-label {
+            color: #6b7280;
+        }
+
+        .result-label.bold {
+            color: #1f2937;
+            font-weight: bold;
+        }
+
+        .result-value {
+            font-weight: 600;
+        }
+
+        .result-value.large {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .result-value.xlarge {
+            font-size: 1.875rem;
+            font-weight: bold;
+        }
+
+        .text-green {
+            color: #15803d;
+        }
+
+        .text-red {
+            color: #dc2626;
+        }
+
+        .text-orange {
+            color: #ea580c;
+        }
+
+        .warning {
+            margin-top: 8px;
+            font-size: 0.875rem;
+            color: #ea580c;
+            font-weight: 500;
+        }
+
+        .info-box {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .info-box p:first-child {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kalkulátor ceny rekuperace</h1>
+
+        <!-- Počet kusů -->
+        <div class="section section-gray">
+            <label>Počet kusů rekuperací</label>
+            <div class="counter-controls">
+                <button class="counter-button minus" onclick="zmenaKusu(-1)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <div class="counter-display">
+                    <input type="number" id="pocetKusu" class="counter-input" value="1" min="1" oninput="prepocitat()">
+                    <span> ks</span>
                 </div>
-              )}
+                <button class="counter-button plus" onclick="zmenaKusu(1)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
             </div>
-          </div>
-
-          {/* Zisk */}
-          <div className="p-6 bg-purple-50 rounded-xl border-2 border-purple-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Výsledek</h2>
-            <div className="space-y-2">
-              {skutecnaMarze !== marze && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Skutečná marže (kvůli minimu):</span>
-                  <span className="font-semibold text-orange-600">{formatCena(skutecnaMarze)}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center">
-                <span className="text-gray-800 font-bold text-lg">Zisk:</span>
-                <span className={`font-bold text-2xl ${zisk >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  {formatCena(zisk)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Info */}
-          <div className="mt-6 p-4 bg-gray-100 rounded-lg text-sm text-gray-600">
-            <p className="font-semibold mb-1">Poznámka:</p>
-            <p>Zisk = Cena bez DPH - Náklady celkem - Provize OZ</p>
-          </div>
         </div>
-      </div>
+
+        <!-- Marže -->
+        <div class="section section-gray">
+            <label>Marže (bez DPH)</label>
+            <input type="number" id="marze" class="input-full" value="0" step="100" placeholder="0" oninput="prepocitat()">
+        </div>
+
+        <!-- Náklady -->
+        <div class="section section-blue">
+            <h2 class="section-title">Náklady</h2>
+            <div class="result-row">
+                <span class="result-label">Kusů × 10 000 Kč:</span>
+                <span class="result-value" id="nakladyKusu">0,00 Kč</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">FEE (doprava + test):</span>
+                <span class="result-value">8 000,00 Kč</span>
+            </div>
+            <div class="result-row total" style="border-color: #93c5fd;">
+                <span class="result-label bold">Náklady celkem:</span>
+                <span class="result-value large" id="nakladyCelkem">0,00 Kč</span>
+            </div>
+        </div>
+
+        <!-- Prodejní cena -->
+        <div class="section section-green">
+            <h2 class="section-title">Prodejní cena</h2>
+            <div class="result-row">
+                <span class="result-label">Cena bez DPH:</span>
+                <span class="result-value" id="cenaBezDPH">0,00 Kč</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">Provize OZ (10%):</span>
+                <span class="result-value text-orange" id="provizeOZ">0,00 Kč</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">DPH (12%):</span>
+                <span class="result-value" id="dph">0,00 Kč</span>
+            </div>
+            <div class="result-row total" style="border-color: #86efac;">
+                <span class="result-label bold">Cena s DPH:</span>
+                <span class="result-value xlarge text-green" id="cenaSDPH">0,00 Kč</span>
+            </div>
+            <div id="warningMin" class="warning" style="display: none;">
+                ⚠ Minimální cena 90 000 Kč s DPH
+            </div>
+        </div>
+
+        <!-- Zisk -->
+        <div class="section section-purple">
+            <h2 class="section-title">Výsledek</h2>
+            <div id="skutecnaMarzeRow" class="result-row" style="display: none;">
+                <span class="result-label">Skutečná marže (kvůli minimu):</span>
+                <span class="result-value text-orange" id="skutecnaMarze">0,00 Kč</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label bold" style="font-size: 1.125rem;">Zisk:</span>
+                <span class="result-value xlarge" id="zisk">0,00 Kč</span>
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="info-box">
+            <p>Poznámka:</p>
+            <p>Zisk = Cena bez DPH - Náklady celkem - Provize OZ</p>
+        </div>
     </div>
-  );
-}
+
+    <script>
+        const NAKLADY_KUS = 10000;
+        const FEE = 8000;
+        const DPH = 0.12;
+        const PROVIZE_OZ_PROCENT = 0.10;
+        const MIN_CENA_S_DPH = 90000;
+
+        function formatCena(cislo) {
+            return new Intl.NumberFormat('cs-CZ', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(cislo) + ' Kč';
+        }
+
+        function zmenaKusu(zmena) {
+            const input = document.getElementById('pocetKusu');
+            const novaPocet = Math.max(1, parseInt(input.value) + zmena);
+            input.value = novaPocet;
+            prepocitat();
+        }
+
+        function prepocitat() {
+            const pocetKusu = parseInt(document.getElementById('pocetKusu').value) || 1;
+            const marze = parseFloat(document.getElementById('marze').value) || 0;
+
+            const nakladyCelkem = pocetKusu * NAKLADY_KUS + FEE;
+            const zakladProVypocet = nakladyCelkem + marze;
+            
+            let cenaBezDPH = zakladProVypocet / (1 - PROVIZE_OZ_PROCENT);
+            let cenaSDPH = cenaBezDPH * (1 + DPH);
+            let skutecnaMarze = marze;
+            let jeMinimum = false;
+
+            if (cenaSDPH < MIN_CENA_S_DPH) {
+                cenaSDPH = MIN_CENA_S_DPH;
+                cenaBezDPH = cenaSDPH / (1 + DPH);
+                const zakladZCeny = cenaBezDPH * (1 - PROVIZE_OZ_PROCENT);
+                skutecnaMarze = zakladZCeny - nakladyCelkem;
+                jeMinimum = true;
+            }
+
+            const provizeOZ = cenaBezDPH * PROVIZE_OZ_PROCENT;
+            const dphCastka = cenaSDPH - cenaBezDPH;
+            const zisk = cenaBezDPH - nakladyCelkem - provizeOZ;
+
+            // Aktualizace UI
+            document.getElementById('nakladyKusu').textContent = formatCena(pocetKusu * NAKLADY_KUS);
+            document.getElementById('nakladyCelkem').textContent = formatCena(nakladyCelkem);
+            document.getElementById('cenaBezDPH').textContent = formatCena(cenaBezDPH);
+            document.getElementById('provizeOZ').textContent = formatCena(provizeOZ);
+            document.getElementById('dph').textContent = formatCena(dphCastka);
+            document.getElementById('cenaSDPH').textContent = formatCena(cenaSDPH);
+            
+            const ziskElement = document.getElementById('zisk');
+            ziskElement.textContent = formatCena(zisk);
+            ziskElement.className = 'result-value xlarge ' + (zisk >= 0 ? 'text-green' : 'text-red');
+
+            // Upozornění na minimum
+            document.getElementById('warningMin').style.display = jeMinimum ? 'block' : 'none';
+
+            // Skutečná marže
+            const skutecnaMarzeRow = document.getElementById('skutecnaMarzeRow');
+            if (skutecnaMarze !== marze) {
+                skutecnaMarzeRow.style.display = 'flex';
+                document.getElementById('skutecnaMarze').textContent = formatCena(skutecnaMarze);
+            } else {
+                skutecnaMarzeRow.style.display = 'none';
+            }
+        }
+
+        // Inicializace
+        prepocitat();
+    </script>
+</body>
+</html>
